@@ -40,7 +40,7 @@ Parameters:
 
   GitHubUser:
     Type: String
-    Default: SudKul
+    Default: mithragk22
     Description: GitHub username or organization
     MinLength: 3
     MaxLength: 100
@@ -119,8 +119,10 @@ Resources:
         ZipFile: |
           import json
           import boto3
-          import urllib3
+          import cfnresponse
+          from botocore.vendored import requests
           def handler(event, context):
+            # This comment was added to force an update on this function's code
             response = {
               'Status': 'SUCCESS',
               "Reason": "See the details in CloudWatch Log Stream: " + context.log_stream_name,
@@ -130,8 +132,9 @@ Resources:
               'LogicalResourceId': event['LogicalResourceId'],
               'Data': {"Message": "Resource creation successful!"},
             }
-          
-            http = urllib3.PoolManager()
+
+            cfnresponse.send(event, context, cfnresponse.SUCCESS, response, context.log_stream_name)
+
             client = boto3.client('iam')
             try:
               if event['RequestType'] == 'Create':
@@ -156,16 +159,13 @@ Resources:
               response['Data'] = {"Message": "Resource creation failed"}
 
             response_body = json.dumps(response)
-            headers = {'Content-Type': 'application/json', "content-length": str(len(response_body)) }
-            put_response = http.request('PUT',
-                          event['ResponseURL'],
-                          body = response_body,
-                          headers=headers)
+            headers = {'content-type': '', "content-length": str(len(response_body)) }
+            put_response = requests.put(event['ResponseURL'], headers=headers, data=response_body)
             return response
 
       Handler: index.handler
       Role: !GetAtt CustomResourceLambdaExecutionRole.Arn
-      Runtime: python3.9
+      Runtime: python3.12
       Timeout: 300
 
   CustomResourceLambdaExecutionRole:
